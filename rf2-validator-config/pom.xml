@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<parent>
+		<groupId>gov.va.oia.terminology.converters</groupId>
+		<artifactId>rf2-validator</artifactId>
+		<version>1.0-SNAPSHOT</version>
+	</parent>
+
+	<artifactId>rf2-validator-config</artifactId>
+	<packaging>pom</packaging>
+	<name>rf2-validator-config</name>
+
+	<version>something-rf2-validator-1.0-SNAPSHOT</version>
+
+	<properties>
+		<sourceData.groupId>gov.va.oia.all-va-sources-wb</sourceData.groupId>
+		<sourceData.artifactId>content-processing-extension-rf2</sourceData.artifactId>
+		<sourceData.version>3.1-dev-SNAPSHOT</sourceData.version>
+	</properties>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>attach-data</id>
+						<configuration>
+							<descriptors>
+								<descriptor>src/main/assembly/generated-artifact.xml</descriptor>
+							</descriptors>
+						</configuration>
+						<goals>
+							<goal>single</goal>
+						</goals>
+						<phase>package</phase>
+					</execution>
+				</executions>
+			</plugin>
+
+			<!-- Get source terminology file from archiva -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-dependency-plugin</artifactId>
+				<executions>
+					<execution>
+						<id>extract-data</id>
+						<phase>generate-sources</phase>
+						<goals>
+							<goal>unpack</goal>
+						</goals>
+						<configuration>
+							<artifactItems>
+								<artifactItem>
+									<groupId>${sourceData.groupId}</groupId>
+									<artifactId>${sourceData.artifactId}</artifactId>
+									<version>${sourceData.version}</version>
+									<classifier>release-files</classifier>
+									<type>zip</type>
+								</artifactItem>
+							</artifactItems>
+							<outputDirectory>${project.build.directory}/generated-resources/data</outputDirectory>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>${project.groupId}</groupId>
+				<artifactId>rf2-validator-mojo</artifactId>
+				<version>${project.parent.version}</version>
+				<executions>
+					<execution>
+						<id>rf2-validate</id>
+						<configuration>
+							<!-- Use this to process a local file (optionally, comment out the fetch data section above as well) -->
+							<!--inputFile>/mnt/d/Work/Apelon/Workspaces/Loaders/chdr/chdr-econcept/CHDR Data/</inputFile--> 
+							
+							<!-- Use this to process the jbin file(s) that comes out of the extract-data section(s) above. -->
+							<inputFile>${project.build.directory}/generated-resources/data</inputFile>
+						</configuration>
+						<goals>
+							<goal>rf2-validate</goal>
+						</goals>
+						<phase>generate-resources</phase>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+</project>
