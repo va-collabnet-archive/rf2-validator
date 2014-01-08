@@ -11,6 +11,8 @@
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<wb-toolkit.version>2.32-trek-no-jini-va-1.10-SNAPSHOT</wb-toolkit.version>
+		<convertersCommonCode.version>2.6</convertersCommonCode.version>
 	</properties>
 
 	<!--scm>
@@ -25,6 +27,30 @@
 				<groupId>org.apache.maven</groupId>
 				<artifactId>maven-plugin-api</artifactId>
 				<version>2.0</version>
+			</dependency>
+			<dependency>
+				<groupId>gov.va.oia.terminology.converters</groupId>
+				<artifactId>convertersCommonCode</artifactId>
+				<version>${convertersCommonCode.version}</version>
+				<scope>compile</scope>
+			</dependency>
+			<dependency>
+				<groupId>net.sf.opencsv</groupId>
+				<artifactId>opencsv</artifactId>
+				<version>2.3</version>
+				<scope>compile</scope>
+			</dependency>
+			<dependency>
+				<groupId>org.ihtsdo</groupId>
+				<artifactId>wb-foundation</artifactId>
+				<version>${wb-toolkit.version}</version>
+				<scope>compile</scope>
+			</dependency>
+			<dependency>
+				<groupId>org.ihtsdo</groupId>
+				<artifactId>wb-bdb</artifactId>
+				<version>${wb-toolkit.version}</version>
+				<scope>compile</scope>
 			</dependency>
 		</dependencies>
 	</dependencyManagement>

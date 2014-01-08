@@ -6,10 +6,21 @@ public class FileInfo
 {
 	private String fileType, contentType, contentSubType, countryNamespace, versionDate, extension;
 	private File file;
+	private boolean isUUIDFile = false;
 	
 	public FileInfo(File f)
 	{
 		file = f;
+	}
+	
+	public void setIsUUIDFile(boolean isUUIDFile)
+	{
+		this.isUUIDFile = isUUIDFile;
+	}
+	
+	public boolean getIsUUIDFile()
+	{
+		return isUUIDFile;
 	}
 	
 	public File getFile()

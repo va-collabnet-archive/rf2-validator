@@ -18,6 +18,9 @@
 		<sourceData.groupId>gov.va.oia.all-va-sources-wb</sourceData.groupId>
 		<sourceData.artifactId>content-processing-extension-rf2</sourceData.artifactId>
 		<sourceData.version>3.1-dev-SNAPSHOT</sourceData.version>
+		<bdbData.groupId>gov.va.oia.all-va-sources-wb</bdbData.groupId>
+		<bdbData.artifactId>project-bdb</bdbData.artifactId>
+		<bdbData.version>3.1-SNAPSHOT</bdbData.version>
 	</properties>
 
 	<build>
@@ -41,13 +44,13 @@
 				</executions>
 			</plugin>
 
-			<!-- Get source terminology file from archiva -->
+			<!-- Get source RF2 export file from archiva -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-dependency-plugin</artifactId>
 				<executions>
 					<execution>
-						<id>extract-data</id>
+						<id>extract-RF2-data</id>
 						<phase>generate-sources</phase>
 						<goals>
 							<goal>unpack</goal>
@@ -62,7 +65,25 @@
 									<type>zip</type>
 								</artifactItem>
 							</artifactItems>
-							<outputDirectory>${project.build.directory}/generated-resources/data</outputDirectory>
+							<outputDirectory>${project.build.directory}/generated-resources/RF2-data</outputDirectory>
+						</configuration>
+					</execution>
+					<execution>
+						<id>extract-bdb-data</id>
+						<phase>generate-sources</phase>
+						<goals>
+							<goal>unpack</goal>
+						</goals>
+						<configuration>
+							<artifactItems>
+								<artifactItem>
+									<groupId>${bdbData.groupId}</groupId>
+									<artifactId>${bdbData.artifactId}</artifactId>
+									<version>${bdbData.version}</version>
+									<type>zip</type>
+								</artifactItem>
+							</artifactItems>
+							<outputDirectory>${project.build.directory}/generated-resources/bdb-data</outputDirectory>
 						</configuration>
 					</execution>
 				</executions>
@@ -79,7 +100,9 @@
 							<!--inputFile>/mnt/d/Work/Apelon/Workspaces/Loaders/chdr/chdr-econcept/CHDR Data/</inputFile--> 
 							
 							<!-- Use this to process the jbin file(s) that comes out of the extract-data section(s) above. -->
-							<inputFile>${project.build.directory}/generated-resources/data</inputFile>
+							<inputRF2>${project.build.directory}/generated-resources/RF2-data</inputRF2>
+							<inputDB>${project.build.directory}/generated-resources/bdb-data/berkeley-db</inputDB>
+							<expectedEffectiveTime>20130731</expectedEffectiveTime>
 						</configuration>
 						<goals>
 							<goal>rf2-validate</goal>
