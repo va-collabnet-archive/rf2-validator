@@ -3,8 +3,14 @@ package gov.va.rf2.validator;
 import gov.va.oia.terminology.converters.sharedUtils.ConsoleUtil;
 import gov.va.rf2.validator.rowData.Concept;
 import gov.va.rf2.validator.rowData.Description;
+import gov.va.rf2.validator.rowData.Identifier;
+import gov.va.rf2.validator.rowData.Refset;
+import gov.va.rf2.validator.rowData.Relationship;
 import gov.va.rf2.validator.rowData.UUIDConcept;
 import gov.va.rf2.validator.rowData.UUIDDescription;
+import gov.va.rf2.validator.rowData.UUIDIdentifier;
+import gov.va.rf2.validator.rowData.UUIDRefset;
+import gov.va.rf2.validator.rowData.UUIDRelationship;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
@@ -13,6 +19,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.UUID;
@@ -24,7 +31,23 @@ import org.apache.maven.plugin.MojoFailureException;
 import au.com.bytecode.opencsv.CSVReader;
 
 /**
- * Goal which validates a set of RF2 output files
+ * Goal which validates a set of RF2 output files.
+ * 
+ * This validator validates all aspects of the RF2 file naming, reporting on any file name which is inconsistent
+ * with the TIG file naming conventions.
+ * 
+ * Next, the validator checks the content of each of the .txt files, ensuring that the proper EOL characters are used,
+ * the proper number of EOL characters are used, the content is parseable as UFT-8.
+ * 
+ * It checks that each file contains a header, with the proper header columns as specified in the TIG.
+ * It checks that each data row is consistent with the header.
+ * It checks that each column in each row of data contains data of the proper format, per the TIG (SCTID, boolean, etc)
+ * 
+ * Finally, there is an optional step, where an inputDb can be provided - in which case, every identifier in the output
+ * files is looked up in the db to ensure that it exists, and that all other columns associated with the ID are consistent
+ * with the data found in the DB.
+ * 
+ * DB consistency issues are written to a separate report.
  * 
  * @goal rf2-validate
  * 
@@ -47,9 +70,9 @@ public class RF2ValidatorMojo extends AbstractMojo
 	 * @required
 	 */
 	private File inputRF2;
-	
+
 	/**
-	 * Expected 'effectiveTime' within the RF2 export files.  Should be formatted as yyyyMMdd.  
+	 * Expected 'effectiveTime' within the RF2 export files. Should be formatted as yyyyMMdd.
 	 * 
 	 * @parameter
 	 * @required
@@ -65,6 +88,7 @@ public class RF2ValidatorMojo extends AbstractMojo
 	private File inputDb;
 
 	private BufferedWriter outputFile;
+	private BufferedWriter dbLookupOutputFile;
 
 	// YYYYMMDD
 	SimpleDateFormat sdf1 = new SimpleDateFormat("yyyyMMdd");
@@ -73,6 +97,7 @@ public class RF2ValidatorMojo extends AbstractMojo
 	// Note - the pattern requires java 1.7
 	SimpleDateFormat sdf2 = new SimpleDateFormat("yyyyMMdd'T'HHmmssX");
 
+	private int dbLookupErrorCounterPerFile = 0;
 	private int errorCounter = 0;
 	private int fileCounter = 0;
 	private int validFileCounter = 0;
@@ -94,7 +119,7 @@ public class RF2ValidatorMojo extends AbstractMojo
 			{
 				throw new MojoExecutionException("The parameter 'inputRF2' must point to an existing folder.  Currently set to: " + inputRF2);
 			}
-			
+
 			try
 			{
 				expectedEffectiveTime_ = sdf1.parse(expectedEffectiveTime);
@@ -104,20 +129,21 @@ public class RF2ValidatorMojo extends AbstractMojo
 				throw new MojoExecutionException("The parameter 'expectedEffectiveTime' must be set to a yyyyMMdd value");
 			}
 
-			outputFile = new BufferedWriter(new FileWriter(new File(outputDirectory, "report.txt")));
+			outputFile = new BufferedWriter(new FileWriter(new File(outputDirectory, "formattingReport.txt")));
 			ConsoleUtil.println("Validating RF2 Export");
 
 			if (inputDb != null && inputDb.exists() && inputDb.isDirectory())
 			{
 				ConsoleUtil.println("Initializing Database");
 				bdbValidator = new BDBValidator(inputDb);
+				dbLookupOutputFile = new BufferedWriter(new FileWriter(new File(outputDirectory, "dbLookupReport.txt")));
 			}
 
 			maps_ = new SCTUUIDMaps(inputRF2);
-			
+
 			processFolder(inputRF2);
 
-			writeLine("Processed " + fileCounter + " files, " + validFileCounter + " were valid, " + (fileCounter - validFileCounter) + " had errors");
+			writeLine("Processed " + fileCounter + " files, " + validFileCounter + " were valid, " + (fileCounter - validFileCounter) + " had errors", false);
 
 			outputFile.close();
 
@@ -125,10 +151,8 @@ public class RF2ValidatorMojo extends AbstractMojo
 			{
 				ConsoleUtil.println("Closing Database");
 				bdbValidator.shutdown();
+				dbLookupOutputFile.close();
 			}
-
-			// TODO use BdbTestRunner to validate concepts I find against the DB
-
 		}
 		catch (Exception e)
 		{
@@ -153,7 +177,7 @@ public class RF2ValidatorMojo extends AbstractMojo
 				if (f.getName().startsWith("sct2_to_uuid_map"))
 				{
 					error("sct2_to_uuid_map files don't yet align to TIG naming conventions");
-					fi.setContentType("-MAP-");  //not part of the TIG
+					fi.setContentType("-MAP-");  // not part of the TIG
 					fi.setExtension(f.getName().substring(f.getName().lastIndexOf('.')).toLowerCase());
 				}
 				else if (f.getName().toLowerCase().matches("[a-zA-Z0-9\\-_]+\\.[a-zA-Z0-9]{1,4}"))
@@ -263,11 +287,46 @@ public class RF2ValidatorMojo extends AbstractMojo
 												new Description(parsedData, expectedEffectiveTime_, maps_.getMap(fi)).validate();
 											}
 										}
+										else if (fi.getContentType().matches("(Relationship)|(StatedRelationship)"))
+										{
+											if (fi.getIsUUIDFile())
+											{
+												new UUIDRelationship(parsedData, expectedEffectiveTime_).validate();
+											}
+											else
+											{
+												new Relationship(parsedData, expectedEffectiveTime_, maps_.getMap(fi)).validate();
+											}
+										}
+										else if (fi.getContentType().equals("Identifier"))
+										{
+											if (fi.getIsUUIDFile())
+											{
+												new UUIDIdentifier(parsedData, expectedEffectiveTime_).validate();
+											}
+											else
+											{
+												new Identifier(parsedData, expectedEffectiveTime_, maps_.getMap(fi)).validate();
+											}
+										}
+										else if (fi.getContentType().endsWith("Refset"))
+										{
+											if (fi.getIsUUIDFile())
+											{
+												new UUIDRefset(parsedData, expectedEffectiveTime_, (header.length > 5 ? Arrays.copyOfRange(header, 6, header.length)
+														: new String[] {})).validate();
+											}
+											else
+											{
+												new Refset(parsedData, expectedEffectiveTime_, maps_.getMap(fi), (header.length > 5 ? Arrays.copyOfRange(header, 6,
+														header.length) : new String[] {})).validate();
+											}
+										}
 									}
 								}
 								catch (Exception e)
 								{
-									error("Line " + lineNo + " failed the lookup in the DB: " + e.getMessage());
+									dbLookupError("Line " + lineNo + " failed the lookup in the DB: " + e.getMessage());
 								}
 							}
 							row = r.readNext();
@@ -276,7 +335,8 @@ public class RF2ValidatorMojo extends AbstractMojo
 					}
 					r.close();
 				}
-				writeLine("");
+				writeLine("", false);
+				writeLine("", true);
 				fileCounter++;
 				if (errorCounter == startErrorCount)
 				{
@@ -544,7 +604,7 @@ public class RF2ValidatorMojo extends AbstractMojo
 				error("Too many columns - should have 10, but has " + header.length);
 			}
 		}
-		//Not part of the tig
+		// Not part of the tig
 		else if (fi.getContentType().equals("-MAP-"))
 		{
 			setupColumn(result, DataType.SCTID, 0, header, "sctId");
@@ -709,20 +769,45 @@ public class RF2ValidatorMojo extends AbstractMojo
 
 	private void startFile(File f) throws IOException
 	{
-		writeLine("Processing File " + f.getCanonicalPath().substring(inputRF2.getCanonicalPath().length() + 1));
+		dbLookupErrorCounterPerFile = 0;
+		writeLine("Processing File " + f.getCanonicalPath().substring(inputRF2.getCanonicalPath().length() + 1), false);
+		writeLine("Processing File " + f.getCanonicalPath().substring(inputRF2.getCanonicalPath().length() + 1), true);
 	}
 
 	private void error(String message) throws IOException
 	{
 		errorCounter++;
-		writeLine("ERROR: " + message);
+		writeLine("ERROR: " + message, false);
 	}
 
-	private void writeLine(String line) throws IOException
+	private void dbLookupError(String message) throws IOException
 	{
-		ConsoleUtil.println(line);
-		outputFile.write(line);
-		outputFile.newLine();
+		dbLookupErrorCounterPerFile++;
+		writeLine("ERROR: " + message, true);
+	}
+
+	private void writeLine(String line, boolean dbLookUpFailue) throws IOException
+	{
+
+		if (dbLookUpFailue && dbLookupOutputFile != null)
+		{
+			if (dbLookupErrorCounterPerFile < 10)
+			{
+				ConsoleUtil.println(line);
+			}
+			else if (dbLookupErrorCounterPerFile == 10)
+			{
+				ConsoleUtil.printErrorln("Too many DB lookup errors, further errors surpressed from console.  See dbLookupReport.txt");
+			}
+			dbLookupOutputFile.write(line);
+			dbLookupOutputFile.newLine();
+		}
+		else
+		{
+			ConsoleUtil.println(line);
+			outputFile.write(line);
+			outputFile.newLine();
+		}
 	}
 
 	public static void main(String[] args) throws MojoExecutionException, MojoFailureException

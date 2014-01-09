@@ -129,8 +129,4 @@ public class FileInfo
 		}
 		this.extension = extension;
 	}
-	
-	
-	
-	
 }

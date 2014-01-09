@@ -128,7 +128,7 @@ public class ValidatorBase
 	{
 		int nid = Ts.get().getNidFromAlternateId(SCTAuthority, sctid + "");
 		ComponentChronicleBI<?> c = Ts.get().getComponent(nid);
-		if (c == null || c.getPrimUuid() == null || c.getVersions() == null || c.getVersions().size() < 1)
+		if (c == null || c.getPrimUuid() == null)
 		{
 			// The exported concept didn't have a preexisting SCTID - it was probably generated. Check the map file.
 			UUID uuid = sctToUUIDMap_.get(sctid);
@@ -151,7 +151,7 @@ public class ValidatorBase
 	{
 		ComponentChronicleBI<?> cc = Ts.get().getComponent(id);
 		
-		if (cc == null || cc.getPrimUuid() == null || cc.getVersions() == null || cc.getVersions().size() < 1)
+		if (cc == null || cc.getPrimUuid() == null)
 		{
 			throw new Exception("Couldn't find the component with the id " + id);
 		}
@@ -211,6 +211,37 @@ public class ValidatorBase
 			{
 				throw new Exception("Expected moduleID of " + dbModule + " (SCTID not in DB) but found " + rowModule + " (" + writtenModule + ")");
 			}
+		}
+	}
+	
+	protected void checkExtensionField(Object data, String fieldName) throws Exception
+	{
+		try
+		{
+			if (data instanceof UUID)
+			{
+				lookupComponentByUUID((UUID)data);
+			}
+			else if (data instanceof Long)
+			{
+				lookupComponentBySCTID((long)data);
+			}
+			else if (data instanceof Integer)
+			{
+				//TODO this would require custom, header based logic
+			}
+			else if (data instanceof String)
+			{
+				//TODO this would require custom, header based logic
+			}
+			else
+			{
+				throw new Exception("Unexpected field type - " + data);
+			}
+		}
+		catch (Exception e)
+		{
+			throw new Exception("Failed validating extension field " + data + ": " + e.getMessage());
 		}
 	}
 }
