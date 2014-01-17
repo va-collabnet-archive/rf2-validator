@@ -85,7 +85,7 @@ public class RF2ValidatorMojo extends AbstractMojo
 	 * @parameter
 	 * @optional
 	 */
-	private File inputDb;
+	private File inputDB;
 
 	private BufferedWriter outputFile;
 	private BufferedWriter dbLookupOutputFile;
@@ -132,11 +132,15 @@ public class RF2ValidatorMojo extends AbstractMojo
 			outputFile = new BufferedWriter(new FileWriter(new File(outputDirectory, "formattingReport.txt")));
 			ConsoleUtil.println("Validating RF2 Export");
 
-			if (inputDb != null && inputDb.exists() && inputDb.isDirectory())
+			if (inputDB != null && inputDB.exists() && inputDB.isDirectory())
 			{
 				ConsoleUtil.println("Initializing Database");
-				bdbValidator = new BDBValidator(inputDb);
+				bdbValidator = new BDBValidator(inputDB);
 				dbLookupOutputFile = new BufferedWriter(new FileWriter(new File(outputDirectory, "dbLookupReport.txt")));
+			}
+			else
+			{
+				ConsoleUtil.println("No Database found, not doing DB level validation");
 			}
 
 			maps_ = new SCTUUIDMaps(inputRF2);
@@ -703,9 +707,11 @@ public class RF2ValidatorMojo extends AbstractMojo
 					error("File types of sct and der must have a part 1 that ends with '1' or '2'.");
 				}
 			}
-			else if (part.matches("(Concept|Description|Relationship|Identifier)|([csi]+Refset)") || "res".equals(fi.getFileTypeCode()) && partNo == 2)
+			else if (part.matches("(Concept|Description|Relationship|Identifier|StatedRelationship)|([csi]+Refset)") 
+					|| "res".equals(fi.getFileTypeCode()) && partNo == 2)
 			{
 				// 2nd part of the if statement isn't well specified in the spec - - could be nearly anything....
+				//TIG doc on StatedRelationship is fuzzy as well.. but they say its ok.  TIG needs updates.
 				fi.setContentType(part);
 				actualPartNumber = 2;
 				if (part.length() > 48)
@@ -733,13 +739,6 @@ public class RF2ValidatorMojo extends AbstractMojo
 			{
 				fi.setVersionDate(part);
 				actualPartNumber = 5;
-			}
-			else if (!"res".equals(fi.getFileTypeCode()) && part.matches("StatedRelationship"))
-			{
-				// A specific bug case in the current RF2 export
-				actualPartNumber = 2;
-				fi.setContentType(part);
-				error("The specification for part 2 doesn't allow 'StatedRelationship' when the type of part 1 is not 'res'");
 			}
 			else
 			{
@@ -771,7 +770,10 @@ public class RF2ValidatorMojo extends AbstractMojo
 	{
 		dbLookupErrorCounterPerFile = 0;
 		writeLine("Processing File " + f.getCanonicalPath().substring(inputRF2.getCanonicalPath().length() + 1), false);
-		writeLine("Processing File " + f.getCanonicalPath().substring(inputRF2.getCanonicalPath().length() + 1), true);
+		if (dbLookupOutputFile != null)
+		{
+			writeLine("Processing File " + f.getCanonicalPath().substring(inputRF2.getCanonicalPath().length() + 1), true);
+		}
 	}
 
 	private void error(String message) throws IOException
@@ -789,18 +791,25 @@ public class RF2ValidatorMojo extends AbstractMojo
 	private void writeLine(String line, boolean dbLookUpFailue) throws IOException
 	{
 
-		if (dbLookUpFailue && dbLookupOutputFile != null)
+		if (dbLookUpFailue)
 		{
-			if (dbLookupErrorCounterPerFile < 10)
+			if (dbLookupOutputFile != null)
 			{
-				ConsoleUtil.println(line);
+				if (dbLookupErrorCounterPerFile < 10)
+				{
+					ConsoleUtil.println(line);
+				}
+				else if (dbLookupErrorCounterPerFile == 10)
+				{
+					ConsoleUtil.printErrorln("Too many DB lookup errors, further errors surpressed from console.  See dbLookupReport.txt");
+				}
+				dbLookupOutputFile.write(line);
+				dbLookupOutputFile.newLine();
 			}
-			else if (dbLookupErrorCounterPerFile == 10)
+			else if (line.length() > 0)
 			{
-				ConsoleUtil.printErrorln("Too many DB lookup errors, further errors surpressed from console.  See dbLookupReport.txt");
+				ConsoleUtil.printErrorln("DESIGN ERROR");
 			}
-			dbLookupOutputFile.write(line);
-			dbLookupOutputFile.newLine();
 		}
 		else
 		{
@@ -818,7 +827,7 @@ public class RF2ValidatorMojo extends AbstractMojo
 		// File("../rf2-validator-config/target/generated-resources/data/SnomedCT_Release_US1000161_20130731/RF2Release/Full/Terminology");
 		// i.inputRF2 = new File("../rf2-validator-config/target/generated-resources/data/SnomedCT_Release_US1000161_20130731");
 		i.inputRF2 = new File("../rf2-validator-config/target/generated-resources/RF2-data/");
-		i.inputDb = new File("../rf2-validator-config/target/generated-resources/bdb-data/berkeley-db");
+		i.inputDB = new File("../rf2-validator-config/target/generated-resources/bdb-data/berkeley-db");
 		i.expectedEffectiveTime = "20130731";
 		i.execute();
 	}
