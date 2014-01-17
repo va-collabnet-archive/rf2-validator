@@ -20,6 +20,12 @@
 		<bdbData.version>3.1.1-dev-SNAPSHOT</bdbData.version>
 		<svnDeployPath>scm:svn:https:TODO</svnDeployPath>
 	</properties>
+	
+	<!--scm>
+		<connection>scm:svn:https://csfe.aceworkspace.net/svn/repos/va-oia-terminology-converters/rf2-validator/trunk/</connection>
+		<developerConnection>scm:svn:https://csfe.aceworkspace.net/svn/repos/va-oia-terminology-converters/rf2-validator/trunk/</developerConnection>
+		<url>https://csfe.aceworkspace.net/integration/viewvc/viewvc.cgi/rf2-validator/trunk/?root=va-oia-terminology-converters&amp;system=exsy1002</url>
+	</scm-->
 
 	<build>
 		<plugins>
