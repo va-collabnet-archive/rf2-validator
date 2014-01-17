@@ -2,25 +2,23 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	<parent>
-		<groupId>gov.va.oia.terminology.converters</groupId>
-		<artifactId>rf2-validator</artifactId>
-		<version>1.0-SNAPSHOT</version>
-	</parent>
 
+	<groupId>gov.va.oia.terminology.converters</groupId>
 	<artifactId>rf2-validator-config</artifactId>
-	<packaging>pom</packaging>
 	<name>rf2-validator-config</name>
-
 	<version>something-rf2-validator-1.0-SNAPSHOT</version>
+	
+	<packaging>pom</packaging>
 
 	<properties>
+		<rf2.validator.version>1.0-SNAPSHOT</rf2.validator.version>
 		<sourceData.groupId>gov.va.jif.all-va-sources-wb</sourceData.groupId>
 		<sourceData.artifactId>content-processing-extension-rf2</sourceData.artifactId>
 		<sourceData.version>3.1.1-dev-SNAPSHOT</sourceData.version>
 		<bdbData.groupId>gov.va.jif.all-va-sources-wb</bdbData.groupId>
 		<bdbData.artifactId>project-bdb</bdbData.artifactId>
 		<bdbData.version>3.1.1-dev-SNAPSHOT</bdbData.version>
+		<svnDeployPath>scm:svn:https:TODO</svnDeployPath>
 	</properties>
 
 	<build>
@@ -89,9 +87,9 @@
 				</executions>
 			</plugin>
 			<plugin>
-				<groupId>${project.groupId}</groupId>
+				<groupId>gov.va.oia.terminology.converters</groupId>
 				<artifactId>rf2-validator-mojo</artifactId>
-				<version>${project.parent.version}</version>
+				<version>${rf2.validator.version}</version>
 				<executions>
 					<execution>
 						<id>rf2-validate</id>
@@ -109,4 +107,95 @@
 			</plugin>
 		</plugins>
 	</build>
+	
+	<!-- A bunch of optional stuff down here for deploying the reports to SVN -->
+	<profiles>
+		<profile>
+			<id>svn-deploy</id>
+			<properties>
+				<svnCheckoutFolder>${basedir}/target/svn-publish</svnCheckoutFolder>
+			</properties>
+			<build>
+				<plugins>
+					<plugin>
+						<artifactId>maven-antrun-plugin</artifactId>
+						<version>1.7</version>
+						<executions>
+							<execution>
+								<phase>prepare-package</phase>
+								<configuration>
+									<target>
+										<copy todir="${svnCheckoutFolder}">
+											<fileset dir="${basedir}/target/" includes="*.txt" />
+										</copy>
+									</target>
+								</configuration>
+								<goals>
+									<goal>run</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-scm-plugin</artifactId>
+						<version>1.8.1</version>
+						<configuration>
+							<connectionUrl>${svnDeployPath}</connectionUrl>
+						</configuration>
+						<executions>
+							<execution>
+								<id>checkout-from-svn</id>
+								<phase>generate-sources</phase>
+								<goals>
+									<goal>checkout</goal>
+								</goals>
+								<configuration>
+									<basedir>${basedir}/target/"</basedir>
+									<checkoutDirectory>${svnCheckoutFolder}</checkoutDirectory>
+								</configuration>
+							</execution>
+							<execution>
+								<id>commit-to-svn</id>
+								<phase>deploy</phase>
+								<goals>
+									<goal>checkin</goal>
+								</goals>
+								<configuration>
+									<basedir>${svnCheckoutFolder}</basedir>
+									<message>Automated Build / Publish</message>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+					<!-- More Maven obnoxiousness.  This hack-fixed mojo needs to run in between the two executions above.  Should really 
+					both be in deploy.  But, maven doesn't let you do that, without cheating the build cycle.  Sigh.  So, the way it all comes together is:
+					generate-sources:  checkout, create the actual reports
+					prepare-package: Copy stuff into the SVN checkout folder
+					package: Run the SVN add commands
+					deploy: Checkin -->
+					<plugin>
+						<groupId>org.apache.maven.scm.plugins</groupId>
+						<artifactId>maven-scm-plugin-add-new</artifactId>
+						<version>1.8.1</version>
+						<configuration>
+							<connectionUrl>${svnDeployPath}</connectionUrl>
+						</configuration>
+						<executions>
+							<execution>
+								<id>add-new</id>
+								<phase>package</phase>
+								<goals>
+									<goal>add-new</goal>
+								</goals>
+								<configuration>
+									<basedir>${svnCheckoutFolder}</basedir>
+								</configuration>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 </project>

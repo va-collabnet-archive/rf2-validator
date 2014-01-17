@@ -15,11 +15,11 @@
 		<convertersCommonCode.version>2.6</convertersCommonCode.version>
 	</properties>
 
-	<!--scm>
-		<connection>scm:svn:https://csfe.aceworkspace.net/svn/repos/va-oia-terminology-converters/exporter/trunk/</connection>
-		<developerConnection>scm:svn:https://csfe.aceworkspace.net/svn/repos/va-oia-terminology-converters/exporter/trunk/</developerConnection>
-		<url>https://csfe.aceworkspace.net/integration/viewvc/viewvc.cgi/exporter/trunk/?root=va-oia-terminology-converters&amp;system=exsy1002</url>
-	</scm-->
+	<scm>
+		<connection>scm:svn:https://csfe.aceworkspace.net/svn/repos/va-oia-terminology-converters/rf2-validator/trunk/</connection>
+		<developerConnection>scm:svn:https://csfe.aceworkspace.net/svn/repos/va-oia-terminology-converters/rf2-validator/trunk/</developerConnection>
+		<url>https://csfe.aceworkspace.net/integration/viewvc/viewvc.cgi/rf2-validator/trunk/?root=va-oia-terminology-converters&amp;system=exsy1002</url>
+	</scm>
 
 	<dependencyManagement>
 		<dependencies>
@@ -71,6 +71,7 @@
 
 	<modules>
 		<module>rf2-validator-mojo</module>
-		<module>rf2-validator-config</module>
+		<!-- This is just a sample for testing / copying to real deployments, doesn't need to be here -->
+		<!--module>rf2-validator-config</module-->
 	</modules>
 </project>
