@@ -5,13 +5,13 @@
 	<modelVersion>4.0.0</modelVersion>
 	<groupId>gov.va.oia.terminology.converters</groupId>
 	<artifactId>rf2-validator</artifactId>
-	<version>1.1-SNAPSHOT</version>
+	<version>1.1</version>
 	<name>rf2-validator</name>
 	<packaging>pom</packaging>
 
 	<properties>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<wb-toolkit.version>2.32-trek-no-jini-va-1.10-SNAPSHOT</wb-toolkit.version>
+		<wb-toolkit.version>2.32-trek-no-jini-va-1.9</wb-toolkit.version>
 		<convertersCommonCode.version>2.6</convertersCommonCode.version>
 	</properties>
 
