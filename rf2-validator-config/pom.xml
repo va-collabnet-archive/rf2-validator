@@ -6,7 +6,7 @@
 	<groupId>gov.va.oia.terminology.converters</groupId>
 	<artifactId>rf2-validator-config</artifactId>
 	<name>rf2-validator-config</name>
-	<version>something-rf2-validator-1.0-SNAPSHOT</version>
+	<version>something-rf2-validator-1.2-SNAPSHOT</version>
 	
 	<packaging>pom</packaging>
 

@@ -11,6 +11,7 @@ import gov.va.rf2.validator.rowData.UUIDDescription;
 import gov.va.rf2.validator.rowData.UUIDIdentifier;
 import gov.va.rf2.validator.rowData.UUIDRefset;
 import gov.va.rf2.validator.rowData.UUIDRelationship;
+
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileInputStream;
@@ -23,11 +24,16 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.UUID;
+
 import org.apache.commons.io.input.BOMInputStream;
 import org.apache.commons.lang.StringUtils;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
+import org.apache.maven.plugins.annotations.LifecyclePhase;
+import org.apache.maven.plugins.annotations.Mojo;
+import org.apache.maven.plugins.annotations.Parameter;
+
 import au.com.bytecode.opencsv.CSVReader;
 
 /**
@@ -48,43 +54,32 @@ import au.com.bytecode.opencsv.CSVReader;
  * with the data found in the DB.
  * 
  * DB consistency issues are written to a separate report.
- * 
- * @goal rf2-validate
- * 
- * @phase process-sources
  */
+@Mojo( name = "rf2-validate", defaultPhase = LifecyclePhase.PROCESS_SOURCES )
 public class RF2ValidatorMojo extends AbstractMojo
 {
 	/**
-	 * Where to put the output file.
-	 * 
-	 * @parameter expression="${project.build.directory}"
-	 * @required
+	 * Location to write the output file
 	 */
-	private File outputDirectory;
+	@Parameter( required = true, defaultValue = "${project.build.directory}" )
+	protected File outputDirectory;
 
 	/**
 	 * Location of the RF2 input data files. Expected to be a directory.
-	 * 
-	 * @parameter
-	 * @required
 	 */
+	@Parameter( required = true )
 	private File inputRF2;
 
 	/**
 	 * Expected 'effectiveTime' within the RF2 export files. Should be formatted as yyyyMMdd.
-	 * 
-	 * @parameter
-	 * @required
 	 */
+	@Parameter( required = true )
 	private String expectedEffectiveTime;
 
 	/**
 	 * Location of the BDB database folder (that was the source of the RF2 export). Expected to be a directory. Optional
-	 * 
-	 * @parameter
-	 * @optional
 	 */
+	@Parameter
 	private File inputDB;
 
 	private BufferedWriter outputFile;
